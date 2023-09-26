@@ -6,23 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-arrow = { version = "43.0.0", features = ["prettyprint", "dyn_cmp_dict"] }
-arrow-flight = { version = "43.0.0", features = ["flight-sql-experimental"] }
-arrow-schema = { version = "43.0.0", default-features = false }
+arrow = { version = "46", features = ["prettyprint", "dyn_cmp_dict"] }
+arrow-flight = { version = "46", features = ["flight-sql-experimental"] }
+arrow-schema = { version = "46", default-features = false }
 async-trait = "0.1.41"
 clap = { version = "3", features = ["derive", "cargo"] }
 dashmap = "5.4"
-datafusion = { version = "28.0.0" }
-datafusion-objectstore-hdfs = { version = "0.1.2", default-features = false, features = ["hdfs3", "try_spawn_blocking"] }
-deltalake = { version = "0.14.0", features = ["datafusion", "hdfs"] }
+datafusion = { version = "31.0.0" }
+deltalake = { version = "0.15.0", features = ["datafusion", "hdfs"] }
 env_logger = "0.10"
 futures = "0.3"
 log = "0.4"
 mimalloc = { version = "0.1", default-features = false }
-object_store = { version = "0.6.1", features = ["cloud"] }
 prost = { version = "0.11", default-features = false }
 prost-derive = { version = "0.11", default-features = false }
 regex = "1.9.5"
+simplelog = "0.12.0"
 tonic = "0.9"
 tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "sync", "parking_lot"] }
 uuid = "1.2"
@@ -37,5 +36,5 @@ codegen-units = 1
 opt-level = 3
 
 [patch.crates-io]
-datafusion-objectstore-hdfs = { git = "https://github.com/datafusion-contrib/datafusion-objectstore-hdfs.git", branch = "update_061" }
-object_store = { git = "https://github.com/apache/arrow-rs.git", rev = "bff6155d38e19bfe62a776731b78b435560f2c8e" }
+datafusion-objectstore-hdfs = { git = "https://github.com/datafusion-contrib/datafusion-objectstore-hdfs.git", branch = "update070" }
+deltalake = { git = "https://github.com/yjshen/delta-rs.git", branch = "jdbc_combo" }

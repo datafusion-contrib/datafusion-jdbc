@@ -51,10 +51,10 @@ use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::logical_expr::LogicalPlan;
 use datafusion::prelude::{DataFrame, SessionConfig, SessionContext};
 use futures::{Stream, StreamExt, TryStreamExt};
-use log::info;
+use log::{info, LevelFilter};
 use mimalloc::MiMalloc;
-use object_store::ObjectStore;
 use prost::Message;
+use simplelog::{ColorChoice, ConfigBuilder, TermLogger, TerminalMode, ThreadLogMode};
 use std::pin::Pin;
 use std::sync::Arc;
 use tonic::metadata::MetadataValue;
@@ -74,7 +74,16 @@ macro_rules! status {
 /// JDBC connection string: "jdbc:arrow-flight-sql://127.0.0.1:50051/"
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+    TermLogger::init(
+        LevelFilter::Debug,
+        ConfigBuilder::new()
+            .set_thread_mode(ThreadLogMode::Both)
+            .build(),
+        TerminalMode::Stderr,
+        ColorChoice::Auto,
+    )
+    .unwrap();
+
     let args = Args::parse();
 
     let addr = "0.0.0.0:50051".parse()?;
@@ -102,7 +111,8 @@ pub struct FlightSqlServiceImpl {
 impl FlightSqlServiceImpl {
     async fn create_ctx(&self) -> Result<String, Status> {
         let config = RuntimeConfig::new();
-        let config = config.with_object_store_registry(Arc::new(store::ObjectStoreRegistryImpl {}));
+        let config =
+            config.with_object_store_registry(Arc::new(store::ObjectStoreRegistryImpl::new()));
         let config =
             // set memory pool size
             if let Some(memory_limit) = &self.conf.memory_limit {
@@ -140,8 +150,8 @@ impl FlightSqlServiceImpl {
 
         info!("Start to list delta tables in {:?}", &self.conf.delta_path);
         // list all first level dirs in delta_path, get the dir name as delta table name
-        let mut list_stream = object_store
-            .list(Option::from(parsed_path.prefix()))
+        let list_stream = object_store
+            .list_with_delimiter(Option::from(parsed_path.prefix()))
             .await
             .map_err(|e| {
                 status!(
@@ -150,15 +160,11 @@ impl FlightSqlServiceImpl {
                 )
             })?;
 
-        let mut table_list = vec![];
-        while let Some(item) = list_stream.try_next().await.map_err(|e| {
-            status!(
-                format!("Error listing delta tables in {:?}", &self.conf.delta_path),
-                e
-            )
-        })? {
-            table_list.push(item.location.filename().unwrap().to_string());
-        }
+        let table_list = list_stream
+            .common_prefixes
+            .iter()
+            .map(|p| p.filename().unwrap().to_string())
+            .collect::<Vec<_>>();
 
         info!("Found delta tables: {:?}", table_list);
 

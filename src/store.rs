@@ -1,44 +1,56 @@
+use dashmap::DashMap;
 use datafusion::common::DataFusionError;
 use datafusion::common::Result;
 use datafusion::datasource::object_store::ObjectStoreRegistry;
-use datafusion_objectstore_hdfs::object_store::hdfs::HadoopFileSystem;
-use object_store::local::LocalFileSystem;
-use object_store::ObjectStore;
+use deltalake::storage::config::{configure_store, StorageOptions};
+use deltalake::ObjectStore;
 use std::sync::Arc;
 use url::Url;
 
 #[derive(Debug)]
-pub struct ObjectStoreRegistryImpl;
+pub struct ObjectStoreRegistryImpl {
+    object_stores: DashMap<String, Arc<dyn ObjectStore>>,
+}
 
-impl ObjectStoreRegistry for ObjectStoreRegistryImpl {
-    fn register_store(
-        &self,
-        _url: &Url,
-        _store: Arc<dyn ObjectStore>,
-    ) -> Option<Arc<dyn ObjectStore>> {
-        unreachable!()
-    }
-
-    fn get_store(&self, url: &Url) -> Result<Arc<dyn ObjectStore>> {
-        match url.scheme() {
-            "hdfs" => build_hdfs_object_store(url),
-            "file" => Ok(Arc::new(LocalFileSystem::new()) as Arc<dyn object_store::ObjectStore>),
-            _ => Err(DataFusionError::Execution(format!(
-                "Unsupported object store scheme: [{}]",
-                url.scheme()
-            ))),
+impl ObjectStoreRegistryImpl {
+    pub fn new() -> Self {
+        Self {
+            object_stores: DashMap::new(),
         }
     }
 }
 
-fn build_hdfs_object_store(url: &Url) -> Result<Arc<dyn ObjectStore>> {
-    let store = HadoopFileSystem::new(url.as_str());
-    if let Some(store) = store {
-        return Ok(Arc::new(store));
+impl ObjectStoreRegistry for ObjectStoreRegistryImpl {
+    fn register_store(
+        &self,
+        url: &Url,
+        store: Arc<dyn ObjectStore>,
+    ) -> Option<Arc<dyn ObjectStore>> {
+        let s = get_url_key(url);
+        self.object_stores.insert(s, store)
     }
 
-    Err(DataFusionError::Execution(format!(
-        "No object store provider found for url: {}",
-        url
-    )))
+    fn get_store(&self, url: &Url) -> Result<Arc<dyn ObjectStore>> {
+        let key = get_url_key(url);
+        if let Some(store) = self.object_stores.get(&key) {
+            return Ok(store.value().clone());
+        } else {
+            configure_store(url, &mut StorageOptions::default()).map_err(|e| {
+                DataFusionError::Execution(format!(
+                    "No object store provider found for url: {}, error: {:?}",
+                    url, e
+                ))
+            })
+        }
+    }
+}
+
+/// Get the key of a url for object store registration.
+/// The credential info will be removed
+fn get_url_key(url: &Url) -> String {
+    format!(
+        "{}://{}",
+        url.scheme(),
+        &url[url::Position::BeforeHost..url::Position::AfterPort],
+    )
 }
