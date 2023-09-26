@@ -60,3 +60,4 @@ site/
 
 # Rust
 target
+Cargo.lock
