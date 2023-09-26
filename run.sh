@@ -16,6 +16,9 @@
 # limitations under the License.
 #
 
+# hadoop classpath is used for object_store-hdfs to get hadoop client
+export CLASSPATH=$CLASSPATH:`hadoop classpath --glob`
+
 rotate_logs ()
 {
     log=$1
