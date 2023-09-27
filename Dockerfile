@@ -1,18 +1,16 @@
-FROM --platform=linux/arm64 rust:1.70 as builder
+FROM openjdk:11-jdk as base
 
-# Install JDK 11
-RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
-    apt-get -y install build-essential clang llvm cmake curl tar
-
-# Set JAVA_HOME and related environment variables
-ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-arm64
+# Set environment variables
 ENV LD_LIBRARY_PATH=$JAVA_HOME/lib/server:$LD_LIBRARY_PATH
 ENV C_INCLUDE_PATH=$JAVA_HOME/include:$JAVA_HOME/include/linux:$C_INCLUDE_PATH
+
+# Update and install dependencies for building Rust and other required packages
+RUN apt-get update && \
+    apt-get -y install build-essential curl git build-essential clang
+
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.72.0
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install Hadoop 3.3.2
 RUN curl -O https://downloads.apache.org/hadoop/common/hadoop-3.3.2/hadoop-3.3.2.tar.gz && \
@@ -28,13 +26,16 @@ RUN echo "export CLASSPATH=$CLASSPATH:`$HADOOP_HOME/bin/hadoop classpath --glob`
 
 # Set the working directory to /build/, build, move the binary and finally clean up
 WORKDIR /build
-COPY . .
+COPY ./src ./src
+COPY ./Cargo.toml .
 RUN rustup component add rustfmt
 RUN cargo build
 RUN mv target/debug/datafusion-jdbc /usr/local/bin
 RUN rm -rf /build
 
 WORKDIR /jdbc
+
+COPY ./delta /delta
 
 COPY run.sh /jdbc/run.sh
 RUN chmod +x /jdbc/run.sh

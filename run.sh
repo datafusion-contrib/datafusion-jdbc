@@ -34,9 +34,11 @@ rotate_logs ()
     fi
 }
 
+# Check if DELTA_DIR is not set or is empty
 if [ -z "$DELTA_DIR" ]; then
-    echo "DELTA_DIR environment variable is not set. Please provide a path using -e DELTA_DIR=/path/to/delta_dir when running the Docker container."
-    exit 1
+    # Log a warning and set a default value
+    echo "WARNING: DELTA_DIR environment variable is not set. Using /delta as default."
+    DELTA_DIR="/delta"
 fi
 
 mkdir -p ./log
