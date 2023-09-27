@@ -3,6 +3,11 @@ version: 2.1
 orbs:
   artifactory: jfrog/artifactory-orb@1.0.1
 
+parameters:
+  version:
+    type: string
+    default: ""
+
 workflows:
   version: 2
   build:
