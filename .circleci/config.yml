@@ -18,30 +18,20 @@ workflows:
           docker-registry: spaceandtime.jfrog.io/dw-docker-local
           docker-steps:
             - run:
-                name: Build Image
-                command: docker build -f ./Dockerfile . -t $DOCKERTAG
+                name: Pull Latest Image for Cache
+                command: |
+                  docker pull spaceandtime.jfrog.io/dw-docker-local/datafusion-jdbc:latest || true
+            - run:
+                name: Build Image with Cache
+                command: |
+                  docker build --cache-from spaceandtime.jfrog.io/dw-docker-local/datafusion-jdbc:latest -f ./Dockerfile . -t $DOCKERTAG
+            - run:
+                name: Tag and Push Latest Image
+                command: |
+                  docker tag $DOCKERTAG spaceandtime.jfrog.io/dw-docker-local/datafusion-jdbc:latest
+                  docker push spaceandtime.jfrog.io/dw-docker-local/datafusion-jdbc:latest
           docker-tag: spaceandtime.jfrog.io/dw-docker-local/datafusion-jdbc:0.1.0-${CIRCLE_BUILD_NUM}
           name: Build DataFusion-JDBC Image
-          repository: dw-docker-local
-          context: ArtifactoryDW
-          filters:
-            branches:
-              only:
-                - master
-
-      - artifactory/docker-publish:
-          docker-registry: spaceandtime.jfrog.io/dw-docker-local
-          docker-steps:
-            - run:
-                name: Build Image (Arm64)
-                command: |
-                  docker version
-                  docker run --privileged --rm tonistiigi/binfmt --install all
-                  docker buildx version
-                  docker buildx ls
-                  docker buildx build --platform linux/arm64 -f ./Dockerfile . -t $DOCKERTAG;
-          docker-tag: spaceandtime.jfrog.io/dw-docker-local/datafusion-jdbc:0.1.0-${CIRCLE_BUILD_NUM}
-          name: Build DataFusion-JDBC Image (Arm64)
           repository: dw-docker-local
           context: ArtifactoryDW
           filters:
