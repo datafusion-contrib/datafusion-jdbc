@@ -24,21 +24,20 @@ ENV LD_LIBRARY_PATH $HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
 # Set CLASSPATH for Hadoop
 RUN echo "export CLASSPATH=$CLASSPATH:`$HADOOP_HOME/bin/hadoop classpath --glob`" >> /etc/environment
 
+COPY ./delta /delta
+
+WORKDIR /jdbc
+COPY run.sh /jdbc/run.sh
+RUN chmod +x /jdbc/run.sh
+
 # Set the working directory to /build/, build, move the binary and finally clean up
 WORKDIR /build
 COPY ./src ./src
 COPY ./Cargo.toml .
 RUN rustup component add rustfmt
-RUN cargo build
-RUN mv target/debug/datafusion-jdbc /usr/local/bin
+RUN cargo build --release
+RUN mv target/release/datafusion-jdbc /usr/local/bin
 RUN rm -rf /build
-
-WORKDIR /jdbc
-
-COPY ./delta /delta
-
-COPY run.sh /jdbc/run.sh
-RUN chmod +x /jdbc/run.sh
 
 ENTRYPOINT ["/jdbc/run.sh"]
 
