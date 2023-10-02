@@ -36,5 +36,5 @@ codegen-units = 1
 opt-level = 3
 
 [patch.crates-io]
-datafusion-objectstore-hdfs = { git = "https://github.com/datafusion-contrib/datafusion-objectstore-hdfs.git", branch = "update070" }
+datafusion-objectstore-hdfs = { git = "https://github.com/datafusion-contrib/datafusion-objectstore-hdfs.git", rev = "5b524550af25ef56cf55bbeba2f22273912676d1" }
 deltalake = { git = "https://github.com/yjshen/delta-rs.git", branch = "action_path_fix" }
