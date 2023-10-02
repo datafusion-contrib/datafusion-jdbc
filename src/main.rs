@@ -74,8 +74,21 @@ macro_rules! status {
 /// JDBC connection string: "jdbc:arrow-flight-sql://127.0.0.1:50051/"
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+
+    let level = match args.log_level {
+        Some(ref level) => match level.to_lowercase().as_str() {
+            "debug" => LevelFilter::Debug,
+            "info" => LevelFilter::Info,
+            "warn" => LevelFilter::Warn,
+            "error" => LevelFilter::Error,
+            _ => LevelFilter::Info,
+        },
+        None => LevelFilter::Info,
+    };
+
     TermLogger::init(
-        LevelFilter::Debug,
+        level,
         ConfigBuilder::new()
             .set_thread_mode(ThreadLogMode::Both)
             .build(),
@@ -84,9 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )
     .unwrap();
 
-    let args = Args::parse();
-
-    let addr = "0.0.0.0:50051".parse()?;
+    let addr = format!("0.0.0.0:{}", &args.port.unwrap_or(50051)).parse()?;
     let service = FlightSqlServiceImpl {
         contexts: Default::default(),
         statements: Default::default(),

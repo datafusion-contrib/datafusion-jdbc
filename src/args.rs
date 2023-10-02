@@ -26,6 +26,12 @@ pub(crate) struct Args {
         help = "Specify the memory pool type 'greedy' or 'fair', default to 'greedy'"
     )]
     mem_pool_type: Option<PoolType>,
+
+    #[clap(short = 'l', long, help = "The log level, default to 'info'")]
+    pub(crate) log_level: Option<String>,
+
+    #[clap(short = 'p', long, help = "The port to listen on, default to 50051")]
+    pub(crate) port: Option<u16>,
 }
 
 #[derive(Debug)]

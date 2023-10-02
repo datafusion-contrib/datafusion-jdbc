@@ -36,9 +36,18 @@ rotate_logs ()
 
 # Check if DELTA_DIR is not set or is empty
 if [ -z "$DELTA_DIR" ]; then
-    # Log a warning and set a default value
     echo "WARNING: DELTA_DIR environment variable is not set. Using /delta as default."
     DELTA_DIR="/delta"
+fi
+
+if [ -z "LOG_LEVEL" ]; then
+    echo "WARNING: LOG_LEVEL environment variable is not set. Using INFO as default."
+    LOG_LEVEL="INFO"
+fi
+
+if [ -z "PORT" ]; then
+    echo "WARNING: PORT environment variable is not set. Using 50051 as default."
+    PORT="50051"
 fi
 
 mkdir -p ./log
@@ -50,4 +59,10 @@ stderr_log="./log/stderr.log"
 rotate_logs "$stdout_log"
 rotate_logs "$stderr_log"
 
-datafusion-jdbc -d $DELTA_DIR >> "$stdout_log" 2>> "$stderr_log"
+if [ -z "$MEM_LIMIT" ]; then
+  echo "Starting datafusion-jdbc with DELTA_DIR=$DELTA_DIR, PORT=$PORT, LOG_LEVEL=$LOG_LEVEL"
+  datafusion-jdbc -d $DELTA_DIR -p $PORT -l $LOG_LEVEL >> "$stdout_log" 2>> "$stderr_log"
+else
+  echo "Starting datafusion-jdbc with DELTA_DIR=$DELTA_DIR, PORT=$PORT, MEM_LIMIT=$MEM_LIMIT, LOG_LEVEL=$LOG_LEVEL"
+  datafusion-jdbc -d $DELTA_DIR -p $PORT -m $MEM_LIMIT -l $LOG_LEVEL >> "$stdout_log" 2>> "$stderr_log"
+fi
